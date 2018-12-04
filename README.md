@@ -5,6 +5,7 @@ A sudoku solver program written in C using bit level and pointer operations
 usage: sudokur -f inFile [-l if we want log printouts]
 
 inout file shoudl have the following format
+
 . . 4 9 3 . . . .
 1 5 . . . . . 8 6
 . . . . . 1 . 2 9
