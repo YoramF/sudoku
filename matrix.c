@@ -269,6 +269,8 @@ int solveBoard (brdR *board, const int raw, const int col, const char value)
 
 	// try to solve board assuming we now might have new cells with single possible value option
 	changed = 1;
+	c = 0;
+	r = 0;
 	while (changed && (b->cells < 81))
 	{
 		changed = findNextCell(b, &r, &c, &v);
