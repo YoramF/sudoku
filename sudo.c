@@ -7,8 +7,8 @@
  *      Sudoku solver.
  *      inout file format:
  *      . . 4 9 3 . . . .
- *		1 5 . . . . . 8 6
- *		. . . . . 1 . 2 9
+ *	1 5 . . . . . 8 6
+ *	. . . . . 1 . 2 9
  *      4 6 . . . 5 . 1 .
  *      . . . 7 . . 9 4 3
  *      . 9 2 4 1 . . . .
@@ -36,16 +36,16 @@ typedef struct _add
 
 typedef struct _brd
 {
-	char				board [9][9];			// the sudoku board
-	char 				score [9][9];		    // score board
-	unsigned short int 	bitMask [9][9];			// bit mask for representing possible values
-	char				cells;
+	char			board [9][9];		// the sudoku board
+	char 			score [9][9];		// score board
+	unsigned short int 	bitMask [9][9];		// bit mask for representing possible values
+	char			cells;
 } brdR;
 
-addR		 	blks [3][3];
-brdR 			*pBlk;
+addR		 blks [3][3];
+brdR 		*pBlk;
 long long int 	iter = 0, stack = 0, deepest = 0; // for statistic printouts
-int				loging = 0;
+int		loging = 0;
 
 
 void printBoard (char b[9][9])
