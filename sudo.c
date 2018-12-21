@@ -7,8 +7,8 @@
  *      Sudoku solver.
  *      inout file format:
  *      . . 4 9 3 . . . .
- *	1 5 . . . . . 8 6
- *	. . . . . 1 . 2 9
+ *		1 5 . . . . . 8 6
+ *		. . . . . 1 . 2 9
  *      4 6 . . . 5 . 1 .
  *      . . . 7 . . 9 4 3
  *      . 9 2 4 1 . . . .
@@ -36,40 +36,28 @@ typedef struct _add
 
 typedef struct _brd
 {
-	char			board [9][9];		// the sudoku board
-	char 			score [9][9];		// score board
-	unsigned short int 	bitMask [9][9];		// bit mask for representing possible values
-	char			cells;
+	char				board [9][9];			// the sudoku board
+	char 				score [9][9];		    // score board
+	unsigned short int 	bitMask [9][9];			// bit mask for representing possible values
+	char				cells;
 } brdR;
 
-addR		 blks [3][3];
-brdR 		*pBlk;
+addR		 	blks [3][3];
+brdR 			*pBlk;
 long long int 	iter = 0, stack = 0, deepest = 0; // for statistic printouts
-int		loging = 0;
+int				loging = 0;
 
 
 void printBoard (char b[9][9])
 {
 	int i,j;
-	int cc = 0, rc = 0;
 
 	for (i = 0; i < 9; i++)
 	{
 		for (j = 0; j < 9; j++)
-		{
 			printf("%d ", b[i][j]);
-			if (++cc == 3)
-			{
-				printf("|");
-				cc = 0;
-			}
-		}
+
 		printf("\n");
-		if (++rc == 3)
-		{
-			printf("---------------------\n");
-			rc = 0;
-		}
 	}
 }
 
@@ -86,6 +74,19 @@ void printStat(brdR *b, int r, int c, int v)
 	}
 }
 
+// return number of set bits in word
+char countSetBits (unsigned short int num)
+{
+	char count = 0;
+
+	while (num)
+	{
+		if (num&1)
+			count++;
+		num >>= 1;
+	}
+	return count;
+}
 
 
 // Once we set a cell with nre value, all cells on same raw, col must be updated
@@ -100,9 +101,9 @@ void updateLines (brdR *b, const int r, const int c, const char v)
 		b->bitMask[i][c] = clearBit(v, b->bitMask[i][c]);
 
 		if (b->score[r][i] > 0)
-			b->score[r][i] = 0;
+			b->score[r][i] = countSetBits(b->bitMask[r][i]);
 		if (b->score[i][c] > 0)
-			b->score[i][c] = 0;
+			b->score[i][c] = countSetBits(b->bitMask[i][c]);
 	}
 }
 
@@ -120,8 +121,8 @@ void updateBlock (brdR *b, const int r, const int c, const char v)
 		for (j1 = vertex.col; j1 < j2; j1++)
 			if (b->score[i1][j1] > 0)
 			{
-				b->score[i1][j1] = 0;
 				b->bitMask[i1][j1] = clearBit(v, b->bitMask[i1][j1]);
+				b->score[i1][j1] = countSetBits(b->bitMask[i1][j1]);
 			}
 }
 
@@ -155,19 +156,6 @@ unsigned short int missingNumB (brdR *b, int br, int bc, int dim)
 	return numbers;
 }
 
-// return number of set bits in word
-char countSetBits (unsigned short int num)
-{
-	char count = 0;
-
-	while (num)
-	{
-		if (num&1)
-			count++;
-		num >>= 1;
-	}
-	return count;
-}
 
 //set new value in a given cell
 int setNewValue (brdR *b, int r, int c, char v)
@@ -294,7 +282,10 @@ int initB (FILE *fp)
 
 	for (i=0; i < 9; i++)
 		for (j = 0; j < 9; j++)
+		{
 			pBlk->bitMask[i][j] = 0x3fe;
+			pBlk->score[i][j] = 9;
+		}
 
 	// fill board with initial values
 	// read these values from stdin
