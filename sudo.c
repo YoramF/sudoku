@@ -7,8 +7,8 @@
  *      Sudoku solver.
  *      inout file format:
  *      . . 4 9 3 . . . .
- *		1 5 . . . . . 8 6
- *		. . . . . 1 . 2 9
+ *      1 5 . . . . . 8 6
+ *      . . . . . 1 . 2 9
  *      4 6 . . . 5 . 1 .
  *      . . . 7 . . 9 4 3
  *      . 9 2 4 1 . . . .
@@ -36,16 +36,16 @@ typedef struct _add
 
 typedef struct _brd
 {
-	char				board [9][9];			// the sudoku board
-	char 				score [9][9];		    // score board
-	unsigned short int 	bitMask [9][9];			// bit mask for representing possible values
-	char				cells;
+	char                board [9][9];   // the sudoku board
+	char                score [9][9];	// score board
+	unsigned short int  bitMask [9][9];	// bit mask for representing possible values
+	char                cells;
 } brdR;
 
-addR		 	blks [3][3];
-brdR 			*pBlk;
-long long int 	iter = 0, stack = 0, deepest = 0; // for statistic printouts
-int				loging = 0;
+addR            blks [3][3];
+brdR            *pBlk;
+long long int   iter = 0, stack = 0, deepest = 0; // for statistic printouts
+int	            loging = 0;
 
 
 void printBoard (char b[9][9])
@@ -138,38 +138,20 @@ char getVal(unsigned short int bits)
 	return (i < 10? i: 0);
 }
 
-// find the set of possible values in given 3x3 block
-unsigned short int missingNumB (brdR *b, int br, int bc, int dim)
-{
-	int i1, i2, j1, j2;
-	unsigned short int numbers = 0x3FE;
-	addR vertex = blks[br][bc];
-
-	i2 = vertex.raw + dim;
-	j2 = vertex.col + dim;
-
-	// clear birts for any none empty cell
-	for (i1 = vertex.raw; i1 < i2; i1++)
-		for (j1 = vertex.col; j1 < j2; j1++)
-			numbers = clearBit(b->board[i1][j1], numbers);
-
-	return numbers;
-}
-
 
 //set new value in a given cell
 int setNewValue (brdR *b, int r, int c, char v)
 {
-
 	iter++;
 	// check that selected location is free, otherwise return error
-	if (b->board[r][c] == 0)
+	if ((b->board[r][c] == 0) && (isBitSet(v, b->bitMask[r][c])))
 	{
 		b->board[r][c] = v;
 		b->score[r][c] = -1;
 
 		updateLines(b, r, c, v);
 		updateBlock(b, r, c, v);
+
 		b->cells++;
 
 		if (loging)
@@ -182,49 +164,10 @@ int setNewValue (brdR *b, int r, int c, char v)
 }
 
 // find the first non set cell location
-int findFirstNonSet (brdR *b, int *r, int *c)
+// maxOpt indicates max value options allowed for the selected cell
+int findFirstNonSet (brdR *b, int *r, int *c, int maxOpt)
 {
-	int i, j;
-	int score;
-	unsigned short int bits, bvn;
-
-	// if board is complete no next cell for update
-	if (b->cells == 81)
-		return 0;
-
-	for (i = 0; i < 9; i++)
-		for (j = 0; j < 9; j++)
-		{
-			if(b->score[i][j] > -1)
-			{
-				bits = b->bitMask[i][j];
-				bvn = missingNumB(b, i/3, j/3, 3);
-				bits &= bvn;
-				score = countSetBits(bits);
-				if (score > 0)
-				{
-					*r = i;
-					*c = j;
-					return 1;
-				}
-				else
-					// dead-end
-					return 0;
-			}
-		}
-
-	return 0;
-}
-
-
-// search the input board for the location that points to cell with one possible value
-// returns 1 if nextCell was found
-// returns 0 if nothing was found.
-int findNextCell (brdR *b, int *r, int *c, char *v)
-{
-	int i, j;
-	int score;
-	unsigned short int bits, bvn;
+	int i, j, score;
 
 	// if board is complete no next cell for update
 	if (b->cells == 81)
@@ -234,30 +177,20 @@ int findNextCell (brdR *b, int *r, int *c, char *v)
 		for (j = 0; j < 9; j++)
 		{
 			score = b->score[i][j];
-			bits = b->bitMask[i][j];
-			if ( score == 0)
+			if(score > -1)
 			{
-				bvn = missingNumB(b, i/3, j/3, 3);
-				bits &= bvn;
-				score = countSetBits(bits);
+				if ((score > 0) && (score <= maxOpt))
+				{
+					*r = i;
+					*c = j;
+					return 1;
+				}
+				else if (score == 0)
+					// dead-end
+					return 0;
 			}
-
-			if (score == 1)
-			{
-				*r = i;
-				*c = j;
-				*v = getVal(bits);
-				return 1;
-			}
-			else if (score > 1)
-				b->score[i][j] = score;					// just update score table
-			// reached deadend
-			else if (score == 0)
-				return 0;
 		}
-	// if we get here than we did not find any candidate.
-	// either because we solved the board or we could not find good candidate
-	// If we did not complete the board, we might still find solution using recursive search
+
 	return 0;
 }
 
@@ -299,7 +232,11 @@ int initB (FILE *fp)
 			c = ((c >= 1) && (c <= 9)? c: 0);
 
 			if (c > 0)
-				setNewValue(pBlk, i, j, c);
+				if(!setNewValue(pBlk, i, j, c))
+				{
+					printf("Invalid board, can't add value: %d in (r:%d) (c:%d)\n", c, i+1, j+1);
+					return 0;
+				}
 
 			k++;
 		}
@@ -329,7 +266,7 @@ int solveBoard (brdR *board, const int raw, const int col, const char value)
 	memcpy(b, board, sizeof(brdR));
 
 	// if we call solveBoard with Value > 0 we need first to change the input board to have this value
-	// as final value for this split location
+	// as final value for this recursion
 	if (value > 0)
 		if (!setNewValue(b, raw, col, value))
 		{
@@ -342,9 +279,9 @@ int solveBoard (brdR *board, const int raw, const int col, const char value)
 	changed = 1;
 	while (changed && (b->cells < 81))
 	{
-		changed = findNextCell(b, &r, &c, &v);
+		changed = findFirstNonSet(b, &r, &c, 1);
 		if	(changed)
-			changed = setNewValue(b, r, c, v);
+			changed = setNewValue(b, r, c, getVal(b->bitMask[r][c]));
 	}
 
 	if (b->cells == 81)
@@ -359,7 +296,7 @@ int solveBoard (brdR *board, const int raw, const int col, const char value)
 
 	// if we get here, it means we could not find any other cells with single value option.
 	// now scan the board for all cells with more value options
-	if (findFirstNonSet(b, &r, &c))
+	if (findFirstNonSet(b, &r, &c, 9))
 	{
 		bitmask = b->bitMask[r][c];
 		while ((v = getVal(bitmask)))
@@ -378,7 +315,7 @@ int solveBoard (brdR *board, const int raw, const int col, const char value)
 		}
 	}
 
-	// if we get here it means we did not find solution
+	// if we get here it means we did not find solution for this recursive branch
 	free(b);
 	stack--;
 
